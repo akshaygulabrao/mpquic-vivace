@@ -89,7 +89,7 @@ func init() {
 				}
 			}
 			if err != nil {
-				utils.Infof("Error receiving upload: %#v", err)
+				utils.Debugf("Error receiving upload: %#v", err)
 			}
 		}
 		io.WriteString(w, `<html><body><form action="/demo/upload" method="post" enctype="multipart/form-data">

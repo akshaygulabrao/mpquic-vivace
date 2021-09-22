@@ -124,6 +124,7 @@ runLoop:
 }
 
 func (p *path) SendingAllowed() bool {
+	utils.Infof("SendingAllowed")
 	return p.open.Get() && p.sentPacketHandler.SendingAllowed()
 }
 

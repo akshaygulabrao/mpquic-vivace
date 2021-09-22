@@ -69,6 +69,7 @@ type Cubic struct {
 
 // NewCubic returns a new Cubic instance
 func NewCubic(clock Clock) *Cubic {
+	utils.Infof("NewCubic")
 	c := &Cubic{
 		clock:          clock,
 		numConnections: defaultNumConnections,
@@ -123,11 +124,17 @@ func (c *Cubic) OnApplicationLimited() {
 		c.epoch = time.Time{}
 	}
 }
-
+//TODO onPacketSent return packetperRTT + 1 
+// How do I know when to reset this count?
+// Only if a packet actually gets sent do I need to increment this count
+func (c *Cubic) SendingAllowedGate() bool{
+	return True
+}
 // CongestionWindowAfterPacketLoss computes a new congestion window to use after
 // a loss event. Returns the new congestion window in packets. The new
 // congestion window is a multiplicative decrease of our current window.
 func (c *Cubic) CongestionWindowAfterPacketLoss(currentCongestionWindow protocol.PacketNumber) protocol.PacketNumber {
+	utils.Infof("CongestionWindowAfterPacketLoss")
 	if currentCongestionWindow < c.lastMaxCongestionWindow {
 		// We never reached the old max, so assume we are competing with another
 		// flow. Use our extra back off factor to allow the other flow to go up.
@@ -144,6 +151,7 @@ func (c *Cubic) CongestionWindowAfterPacketLoss(currentCongestionWindow protocol
 // follows a cubic function that depends on the time passed since last
 // packet loss.
 func (c *Cubic) CongestionWindowAfterAck(currentCongestionWindow protocol.PacketNumber, delayMin time.Duration) protocol.PacketNumber {
+	utils.Infof("CongestionWindowAfterAck");
 	c.ackedPacketsCount++ // Packets acked.
 	currentTime := c.clock.Now()
 

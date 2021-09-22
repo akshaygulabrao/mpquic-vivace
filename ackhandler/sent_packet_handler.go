@@ -170,7 +170,8 @@ func (h *sentPacketHandler) SentPacket(packet *Packet) error {
 	} else {
 		h.numNonRetransmittablePackets++
 	}
-
+	//TODO update for pcc vivace
+	// we need to pass this exact moment to viv so that we know when a packet was sent
 	h.congestion.OnPacketSent(
 		now,
 		h.bytesInFlight,
@@ -516,6 +517,7 @@ func (h *sentPacketHandler) GetStopWaitingFrame(force bool) *wire.StopWaitingFra
 func (h *sentPacketHandler) SendingAllowed() bool {
 	congestionLimited := h.bytesInFlight > h.congestion.GetCongestionWindow()
 	maxTrackedLimited := protocol.PacketNumber(len(h.retransmissionQueue)+h.packetHistory.Len()) >= protocol.MaxTrackedSentPackets
+	//TODO if packetsThisRTT >= allowedPacketsperRTT: return False else return True
 	if congestionLimited {
 		utils.Debugf("Congestion limited: bytes in flight %d, window %d",
 			h.bytesInFlight,

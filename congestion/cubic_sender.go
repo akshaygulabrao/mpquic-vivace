@@ -86,7 +86,8 @@ func (c *cubicSender) TimeUntilSend(now time.Time, bytesInFlight protocol.ByteCo
 	}
 	return utils.InfDuration
 }
-
+//TODO: For Vivace, we want to track how many packets are sent per RTT, then
+// changes Sending Allowed in sent_packet_handler (SPH)  
 func (c *cubicSender) OnPacketSent(sentTime time.Time, bytesInFlight protocol.ByteCount, packetNumber protocol.PacketNumber, bytes protocol.ByteCount, isRetransmittable bool) bool {
 	// Only update bytesInFlight for data packets.
 	if !isRetransmittable {

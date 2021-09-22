@@ -22,6 +22,7 @@ type Olia struct {
 }
 
 func NewOlia(ackedBytes protocol.ByteCount) *Olia {
+	utils.Infof("NewOlia")
 	o := &Olia{
 		loss1:      ackedBytes,
 		loss2:      ackedBytes,
@@ -55,12 +56,14 @@ func (o *Olia) UpdateAckedSinceLastLoss(ackedBytes protocol.ByteCount) {
 }
 
 func (o *Olia) OnPacketLost() {
+	utils.Infof("OnPacketLost")
 	// TODO should we add so many if check? Not done here
 	o.loss1 = o.loss2
 	o.loss2 = o.loss3
 }
 
 func (o *Olia) CongestionWindowAfterAck(currentCongestionWindow protocol.PacketNumber, rate protocol.ByteCount, cwndScaled uint64) protocol.PacketNumber {
+	utils.Infof("CongestionWindowAfterAck")
 	newCongestionWindow := currentCongestionWindow
 	incDen := uint64(o.epsilonDen) * uint64(currentCongestionWindow) * uint64(rate)
 	if incDen == 0 {

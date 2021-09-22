@@ -591,11 +591,11 @@ func (s *session) handleStreamFrame(frame *wire.StreamFrame) error {
 		// Receiving end of stream, print stats about it
 		// Print client statistics about its paths
 		s.pathsLock.RLock()
-		utils.Infof("Info for stream %x of %x", frame.StreamID, s.connectionID)
+		utils.Debugf("Info for stream %x of %x", frame.StreamID, s.connectionID)
 		for pathID, pth := range s.paths {
 			sntPkts, sntRetrans, sntLost := pth.sentPacketHandler.GetStatistics()
 			rcvPkts := pth.receivedPacketHandler.GetStatistics()
-			utils.Infof("Path %x: sent %d retrans %d lost %d; rcv %d", pathID, sntPkts, sntRetrans, sntLost, rcvPkts)
+			utils.Debugf("Path %x: sent %d retrans %d lost %d; rcv %d", pathID, sntPkts, sntRetrans, sntLost, rcvPkts)
 		}
 		s.pathsLock.RUnlock()
 	}
@@ -744,7 +744,7 @@ func (s *session) handleCloseError(closeErr closeError) error {
 	}
 	// Don't log 'normal' reasons
 	if quicErr.ErrorCode == qerr.PeerGoingAway || quicErr.ErrorCode == qerr.NetworkIdleTimeout {
-		utils.Infof("Closing connection %x", s.connectionID)
+		utils.Debugf("Closing connection %x", s.connectionID)
 	} else {
 		utils.Errorf("Closing session with error: %s", closeErr.err.Error())
 	}
@@ -789,7 +789,7 @@ func (s *session) sendPackedPacket(packet *packedPacket, pth *path) error {
 	pth.sentPacket<-struct{}{}
 
 	s.logPacket(packet, pth.pathID)
-	//utils.Infof("%x %v %v %v",s.connectionID,pth.pathID,pth.sentPacketHandler.GetBytesInFlight(),pth.sentPacketHandler.GetCongestionWindow())
+	//utils.Debugf("%x %v %v %v",s.connectionID,pth.pathID,pth.sentPacketHandler.GetBytesInFlight(),pth.sentPacketHandler.GetCongestionWindow())
 	return pth.conn.Write(packet.raw)
 }
 
@@ -823,7 +823,7 @@ func (s *session) logPacket(packet *packedPacket, pathID protocol.PathID) {
 		// We don't need to allocate the slices for calling the format functions
 		return
 	}
-	utils.Infof("-> Sending packet 0x%x (%d bytes) for connection %x on path %x", packet.number, len(packet.raw), s.connectionID, pathID)
+	utils.Debugf("-> Sending packet 0x%x (%d bytes) for connection %x on path %x", packet.number, len(packet.raw), s.connectionID, pathID)
 	for _, frame := range packet.frames {
 		wire.LogFrame(frame, true)
 	}
@@ -893,7 +893,7 @@ func (s *session) garbageCollectStreams() {
 }
 
 func (s *session) sendPublicReset(rejectedPacketNumber protocol.PacketNumber) error {
-	utils.Infof("Sending public reset for connection %x, packet number %d", s.connectionID, rejectedPacketNumber)
+	utils.Debugf("Sending public reset for connection %x, packet number %d", s.connectionID, rejectedPacketNumber)
 	// XXX: seems reasonable to send on the pathID 0, but this can change
 	return s.paths[protocol.InitialPathID].conn.Write(wire.WritePublicReset(s.connectionID, rejectedPacketNumber, 0))
 }
@@ -917,10 +917,10 @@ func (s *session) tryQueueingUndecryptablePacket(p *receivedPacket) {
 			s.receivedTooManyUndecrytablePacketsTime = time.Now()
 			s.maybeResetTimer()
 		}
-		utils.Infof("Dropping undecrytable packet 0x%x (undecryptable packet queue full)", p.publicHeader.PacketNumber)
+		utils.Debugf("Dropping undecrytable packet 0x%x (undecryptable packet queue full)", p.publicHeader.PacketNumber)
 		return
 	}
-	utils.Infof("Queueing packet 0x%x for later decryption", p.publicHeader.PacketNumber)
+	utils.Debugf("Queueing packet 0x%x for later decryption", p.publicHeader.PacketNumber)
 	s.undecryptablePackets = append(s.undecryptablePackets, p)
 }
 
