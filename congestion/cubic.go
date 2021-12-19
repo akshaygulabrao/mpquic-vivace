@@ -128,7 +128,7 @@ func (c *Cubic) OnApplicationLimited() {
 // How do I know when to reset this count?
 // Only if a packet actually gets sent do I need to increment this count
 func (c *Cubic) SendingAllowedGate() bool{
-	return True
+	return true
 }
 // CongestionWindowAfterPacketLoss computes a new congestion window to use after
 // a loss event. Returns the new congestion window in packets. The new

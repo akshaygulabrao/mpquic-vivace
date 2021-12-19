@@ -80,6 +80,7 @@ func (o *OliaSender) TimeUntilSend(now time.Time, bytesInFlight protocol.ByteCou
 }
 
 func (o *OliaSender) OnPacketSent(sentTime time.Time, bytesInFlight protocol.ByteCount, packetNumber protocol.PacketNumber, bytes protocol.ByteCount, isRetransmittable bool) bool {
+	utils.Infof("OnPacketSent")
 	// Only update bytesInFlight for data packets.
 	if !isRetransmittable {
 		return false
@@ -232,6 +233,7 @@ func (o *OliaSender) maybeIncreaseCwnd(ackedPacketNumber protocol.PacketNumber, 
 }
 
 func (o *OliaSender) OnPacketAcked(ackedPacketNumber protocol.PacketNumber, ackedBytes protocol.ByteCount, bytesInFlight protocol.ByteCount) {
+	utils.Infof("%v",o.rttStats.SmoothedRTT())
 	o.largestAckedPacketNumber = utils.MaxPacketNumber(ackedPacketNumber, o.largestAckedPacketNumber)
 	if o.InRecovery() {
 		// PRR is used when in recovery
