@@ -49,7 +49,7 @@ func main() {
 	var wg sync.WaitGroup
 	wg.Add(len(urls))
 	for _, addr := range urls {
-		utils.Infof("GET %s", addr)
+		//utils.Infof("GET %s", addr)
 		go func(addr string) {
 			rsp, err := hclient.Get(addr)
 			if err != nil {

@@ -350,7 +350,7 @@ func (s *server) handlePacket(rcvRawPacket *receivedRawPacket) error {
 			return errors.New("Server BUG: negotiated version not supported")
 		}
 
-		utils.Infof("Serving new connection: %x, version %s from %v", hdr.ConnectionID, version, remoteAddr)
+		//utils.Infof("Serving new connection: %x, version %s from %v", hdr.ConnectionID, version, remoteAddr)
 		// It's the responsibility of the server to give a proper connection
 		conn := &conn{pconn: pconn, currentAddr: remoteAddr}
 		var handshakeChan <-chan handshakeEvent

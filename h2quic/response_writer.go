@@ -57,7 +57,7 @@ func (w *responseWriter) WriteHeader(status int) {
 		}
 	}
 
-	utils.Infof("Responding with %d", status)
+	//utils.Infof("Responding with %d", status)
 	w.headerStreamMutex.Lock()
 	defer w.headerStreamMutex.Unlock()
 	h2framer := http2.NewFramer(w.headerStream, nil)
