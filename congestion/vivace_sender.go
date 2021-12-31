@@ -74,7 +74,7 @@ func NewVivaceSender(vivaceSenders map[protocol.PathID]*VivaceSender, rttStats *
 func(v *VivaceSender) printIntervals(){
 	for i:=0; i < 4; i++ {
 		a := v.history[i]
-		fmt.Printf("%v ", a.start.Format(time.StampNano))
+		fmt.Printf("Sent:%v,Acked:%v,Lost:%v  ", a.sentPackets, a.ackedPackets, a.lostPackets)
 	}
 	fmt.Printf("\n")
 }
@@ -83,7 +83,7 @@ func(v *VivaceSender)  InitIntervals(){
 	for i:= 0; i < 4; i++ {
 		v.history[i] = NewVivaceInterval(v.rttStats.SmoothedRTT(),time.Time{})
 	}
-}	
+}
 
 func (v *VivaceSender) TimeUntilSend(now time.Time, bytesInFlight protocol.ByteCount) time.Duration {
 	if v.InRecovery() {
@@ -97,6 +97,7 @@ func (v *VivaceSender) TimeUntilSend(now time.Time, bytesInFlight protocol.ByteC
 }
 
 func (v *VivaceSender) OnPacketSent(sentTime time.Time, bytesInFlight protocol.ByteCount, packetNumber protocol.PacketNumber, bytes protocol.ByteCount, isRetransmittable bool) bool {
+	v.history[0].sentPackets++
 	// Only update bytesInFlight for data packets.
 
 	if !isRetransmittable {
@@ -117,10 +118,17 @@ func (v *VivaceSender) GetCongestionWindow() protocol.ByteCount {
 	for i:= 3; i > 0 ; i-- {
 		v.history[i] = v.history[i-1]
 	}
-	v.history[0].start = time.Now() 
+	// check if we should start a new interval
+	// check if start + duration is before time.Now()
+	start := v.history[0].start
+	duration := v.history[0].duration
+	if start.Add(duration).Before(time.Now()){
+		v.history[0] = NewVivaceInterval( v.rttStats.SmoothedRTT(), time.Now())
+	}
+
 	v.printIntervals()	
 	utils.Infof("%v,%v,%v",v.rttStats.SmoothedRTT(),3 * protocol.DefaultTCPMSS,v.lostPackets)
-	return 3 * protocol.DefaultTCPMSS
+	return 100 * protocol.DefaultTCPMSS
 }
 
 func (v *VivaceSender) GetSlowStartThreshold() protocol.ByteCount {
@@ -145,11 +153,11 @@ func (v *VivaceSender) OnConnectionMigration() {
 
 }
 func (v *VivaceSender)  OnPacketAcked(protocol.PacketNumber, protocol.ByteCount, protocol.ByteCount) {
-
+	v.history[0].ackedPackets++
 }
 
 func (v *VivaceSender) OnPacketLost(protocol.PacketNumber, protocol.ByteCount, protocol.ByteCount) {
-
+	v.history[0].lostPackets++
 }
 
 func (v *VivaceSender) OnRetransmissionTimeout(bool) {
