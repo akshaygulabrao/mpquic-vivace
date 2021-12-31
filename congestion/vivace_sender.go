@@ -78,7 +78,9 @@ func(v *VivaceSender) printIntervals(){
 	}
 	fmt.Printf("\n")
 }
-		
+func(v *VivaceSender) utilityFunction() uint32{
+	return  v.history[1].rate + (v.history[1].sentPackets - v.history[1].lostPackets)
+}		
 func(v *VivaceSender)  InitIntervals(){
 	for i:= 0; i < 4; i++ {
 		v.history[i] = NewVivaceInterval(v.rttStats.SmoothedRTT(),time.Time{})
@@ -114,21 +116,26 @@ func (v *VivaceSender) OnPacketSent(sentTime time.Time, bytesInFlight protocol.B
 
 func (v *VivaceSender) GetCongestionWindow() protocol.ByteCount {
 	//adding a time.Time so that I can check for nil
-	// right-shift intervals
+	/* right-shift intervals
 	for i:= 3; i > 0 ; i-- {
 		v.history[i] = v.history[i-1]
 	}
+	*/
 	// check if we should start a new interval
 	// check if start + duration is before time.Now()
 	start := v.history[0].start
 	duration := v.history[0].duration
 	if start.Add(duration).Before(time.Now()){
+		for i:= 3; i > 0 ; i-- {
+			v.history[i] = v.history[i-1]
+		}
+		v.history[1].rate = v.history[2].rate + (v.history[2].sentPackets - v.history[2].lostPackets)
 		v.history[0] = NewVivaceInterval( v.rttStats.SmoothedRTT(), time.Now())
 	}
 
-	v.printIntervals()	
-	utils.Infof("%v,%v,%v",v.rttStats.SmoothedRTT(),3 * protocol.DefaultTCPMSS,v.lostPackets)
-	return 100 * protocol.DefaultTCPMSS
+	v.printIntervals()
+	utils.Infof("%v,%v,%v",v.rttStats.SmoothedRTT(),  protocol.ByteCount(uint64(v.history[1].rate)) ,v.lostPackets)
+	return protocol.ByteCount(uint64(v.history[1].rate)) * protocol.DefaultTCPMSS
 }
 
 func (v *VivaceSender) GetSlowStartThreshold() protocol.ByteCount {

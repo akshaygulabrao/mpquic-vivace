@@ -10,6 +10,7 @@ import (
 type VivaceInterval struct {
 	start	time.Time
 	duration time.Duration
+	rate uint32
 	sendingRate uint32
 	sentPackets uint32
 	lostPackets uint32
@@ -20,6 +21,7 @@ func NewVivaceInterval (duration time.Duration,currentTime time.Time) VivaceInte
 	v := VivaceInterval{
 		start: currentTime,
 		duration: duration,
+		rate: 3,
 		sendingRate: 0,
 		sentPackets: 0, 
 		lostPackets: 0,
