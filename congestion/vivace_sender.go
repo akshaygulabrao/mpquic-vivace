@@ -5,6 +5,7 @@ import (
 	"time"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
+	"math"
 )
 
 type VivaceSender struct {
@@ -12,7 +13,7 @@ type VivaceSender struct {
 	prr             PrrSender
 	rttStats        *RTTStats
 	stats           connectionStats
-	history            [4]VivaceInterval
+	history         [4]VivaceInterval
 	vivaceSenders     map[protocol.PathID]*VivaceSender
 
 	// Track the largest packet that has been sent.
@@ -78,10 +79,25 @@ func(v *VivaceSender) printIntervals(){
 	}
 	fmt.Printf("\n")
 }
-func(v *VivaceSender) utilityFunction() uint32{
-	return  v.history[1].rate + (v.history[1].sentPackets - v.history[1].lostPackets)
-}		
-func(v *VivaceSender)  InitIntervals(){
+func(v *VivaceSender) utilityFunction() float64{
+	ThroughputReward := math.Pow(v.history[1].rate,0.9) * float64(int64(protocol.ByteCount(protocol.DefaultTCPMSS)))
+	var LatencyGradient float64
+	LatencyGradient = float64(v.history[1].duration.Nanoseconds() - v.history[2].duration.Nanoseconds()) / 1e6
+	LatencyPenalty := float64(900*v.history[1].rate * LatencyGradient)
+	utils.Infof("%v",LatencyGradient)
+
+	var LossRate float64
+	if v.history[1].sentPackets == 0{
+		LossRate = 0
+	} else{
+		LossRate = float64(v.history[1].lostPackets) / float64(v.history[1].sentPackets)
+	}
+	LossPenalty := v.history[1].rate * LossRate
+
+	utils.Infof("Tp:%v Lat: %v Loss: %v", ThroughputReward,LatencyPenalty,LossPenalty)
+	return ThroughputReward - LatencyPenalty - LossPenalty
+}
+func(v *VivaceSender) InitIntervals(){
 	for i:= 0; i < 4; i++ {
 		v.history[i] = NewVivaceInterval(v.rttStats.SmoothedRTT(),time.Time{})
 	}
@@ -115,27 +131,18 @@ func (v *VivaceSender) OnPacketSent(sentTime time.Time, bytesInFlight protocol.B
 }
 
 func (v *VivaceSender) GetCongestionWindow() protocol.ByteCount {
-	//adding a time.Time so that I can check for nil
-	/* right-shift intervals
-	for i:= 3; i > 0 ; i-- {
-		v.history[i] = v.history[i-1]
-	}
-	*/
-	// check if we should start a new interval
-	// check if start + duration is before time.Now()
 	start := v.history[0].start
 	duration := v.history[0].duration
 	if start.Add(duration).Before(time.Now()){
 		for i:= 3; i > 0 ; i-- {
 			v.history[i] = v.history[i-1]
 		}
-		v.history[1].rate = v.history[2].rate + (v.history[2].sentPackets - v.history[2].lostPackets)
 		v.history[0] = NewVivaceInterval( v.rttStats.SmoothedRTT(), time.Now())
 	}
-
-	v.printIntervals()
-	utils.Infof("%v,%v,%v",v.rttStats.SmoothedRTT(),  protocol.ByteCount(uint64(v.history[1].rate)) ,v.lostPackets)
-	return protocol.ByteCount(uint64(v.history[1].rate)) * protocol.DefaultTCPMSS
+	newCwnd:= v.history[1].rate + v.utilityFunction()
+	utils.Infof(" %v",newCwnd)
+	//return protocol.ByteCount(uint64(v.history[1].rate)) * protocol.DefaultTCPMSS
+	return protocol.ByteCount(int64(newCwnd ))
 }
 
 func (v *VivaceSender) GetSlowStartThreshold() protocol.ByteCount {
@@ -143,12 +150,12 @@ func (v *VivaceSender) GetSlowStartThreshold() protocol.ByteCount {
 }
 
 func (v *VivaceSender) InRecovery() bool {
-	return false 
+	return false
 }
 
 func (v *VivaceSender) BandwidthEstimate() Bandwidth{
 	return BandwidthFromDelta(v.GetCongestionWindow(), v.rttStats.SmoothedRTT())
-} 
+}
 func (v *VivaceSender) HybridSlowStart() *HybridSlowStart {
 	return &v.hybridSlowStart
 }
@@ -176,14 +183,14 @@ func (v *VivaceSender) RenoBeta() float32{
 }
 
 func (v *VivaceSender) RetransmissionDelay() time.Duration{
-	return 1 * time.Millisecond 
+	return 1 * time.Millisecond
 }
 
 func (v *VivaceSender) SetNumEmulatedConnections(int){
 }
 
 func (v *VivaceSender) SetSlowStartLargeReduction(bool){
-	
+
 }
 
 func (v *VivaceSender) SlowstartThreshold() protocol.PacketNumber {
@@ -191,5 +198,5 @@ func (v *VivaceSender) SlowstartThreshold() protocol.PacketNumber {
 }
 
 func (v *VivaceSender) SmoothedRTT() time.Duration {
-	return v.rttStats.SmoothedRTT() 
+	return v.rttStats.SmoothedRTT()
 }
